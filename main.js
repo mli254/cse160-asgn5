@@ -3,61 +3,105 @@ import * as THREE from 'three';
 function main() {
 
 	const canvas = document.querySelector( '#c' );
+    canvas.width = 500;
+    canvas.height = 500;
 	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
 
+    // Setting up Camera
 	const fov = 75;
-	const aspect = 2; // the canvas default
+	const aspect = 1; // the canvas default
 	const near = 0.1;
-	const far = 5;
+	const far = 10;
 	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	camera.position.z = 2;
+	camera.position.z = 5;
 
-	const scene = new THREE.Scene();
+	const scene = new THREE.Scene(); // root of screen graph
+    scene.background = new THREE.Color( 0x4c7857 );
 
-	{
+    // Setting up Lighting
+    {
+        const color = 0xFFFFFF;
+        const intensity = 5;
+        const light = new THREE.DirectionalLight( color, intensity );
+        light.position.set( - 1, 2, 4 );
+        scene.add( light );
+    }
 
-		const color = 0xFFFFFF;
-		const intensity = 3;
-		const light = new THREE.DirectionalLight( color, intensity );
-		light.position.set( - 1, 2, 4 );
-		scene.add( light );
-
-	}
-
+    // Cube Geometry Settings
 	const boxWidth = 1;
 	const boxHeight = 1;
 	const boxDepth = 1;
-	const geometry = new THREE.BoxGeometry( boxWidth, boxHeight, boxDepth );
+	const cubeGeometry = new THREE.BoxGeometry( boxWidth, boxHeight, boxDepth );
 
-	function makeInstance( geometry, color, x ) {
+    // Cylinder Geometry Settings
+    const radiusTop = 1;
+    const radiusBottom = 1;
+    const cylinderHeight = 1;
+    const radialSegments = 12;
+    const cylinderGeometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, cylinderHeight, radialSegments );
 
-		const material = new THREE.MeshPhongMaterial( { color } );
+    const coneRadius = 1;
+    const coneHeight = 1;
+    const coneSegments = 16;
+    const coneGeometry = new THREE.ConeGeometry( coneRadius, coneHeight, coneSegments);
 
-		const cube = new THREE.Mesh( geometry, material );
-		scene.add( cube );
+    // Textures Settings
+    const loader = new THREE.TextureLoader();
+	const texture = loader.load( './images/miku.png' );
+	texture.colorSpace = THREE.SRGBColorSpace;
 
-		cube.position.x = x;
+    const objects = [];
 
-		return cube;
+    // Create Color Material
+    function createColorMaterial(color) {
+        const material = new THREE.MeshPhongMaterial( { color } );
+        return material;
+    }
+
+    // Create Texture Material
+    function createTexturedMaterial(texture) {
+        const material = new THREE.MeshPhongMaterial( {
+            map: texture
+        } );
+        return material;
+    }
+
+    // Draw Objects
+    function addObject( x, y, obj ) {
+
+		obj.position.x = x;
+		obj.position.y = y;
+
+		scene.add( obj );
+		objects.push( obj );
+        return obj;
+
+    }
+
+    // Abstracted method for creating geometries
+    function addSolidGeometry( x, y, geometry, material ) {
+
+		const mesh = new THREE.Mesh( geometry, material );
+		return addObject( x, y, mesh );
 
 	}
 
-	const cubes = [
-		makeInstance( geometry, 0x44aa88, 0 ),
-		makeInstance( geometry, 0x8844aa, - 2 ),
-		makeInstance( geometry, 0xaa8844, 2 ),
-	];
+    addSolidGeometry(-2, 0, cubeGeometry, createColorMaterial(0x8844aa));
+    addSolidGeometry(2, 0, cylinderGeometry, createColorMaterial(0xaa8844));
+    addSolidGeometry(0, 2, coneGeometry, createTexturedMaterial(texture));
+    addSolidGeometry(0, 0, cubeGeometry, createTexturedMaterial(texture));
 
+    // Animation
 	function render( time ) {
 
 		time *= 0.001; // convert time to seconds
 
-		cubes.forEach( ( cube, ndx ) => {
+		objects.forEach( ( obj, ndx ) => {
 
 			const speed = 1 + ndx * .1;
 			const rot = time * speed;
-			cube.rotation.x = rot;
-			cube.rotation.y = rot;
+			obj.rotation.x = rot;
+			obj.rotation.y = rot;
 
 		} );
 
@@ -68,7 +112,6 @@ function main() {
 	}
 
 	requestAnimationFrame( render );
-
 }
 
 main();
