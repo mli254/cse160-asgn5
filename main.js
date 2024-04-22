@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
+import {MTLLoader} from 'three/addons/loaders/MTLLoader.js';
 
 function main() {
 
@@ -27,6 +29,18 @@ function main() {
         scene.add( light );
     }
 
+    // Adding a model
+    const mtlLoader = new MTLLoader();
+    const objLoader = new OBJLoader();
+    mtlLoader.load('./models/little_fox/materials.mtl', (mtl) => {
+        mtl.preload();
+        objLoader.setMaterials(mtl);
+        
+            objLoader.load('./models/little_fox/model.obj', (root) => {
+                root.rotation.y = 1;
+                scene.add(root);
+        });
+    });
     // Cube Geometry Settings
 	const boxWidth = 1;
 	const boxHeight = 1;
@@ -89,7 +103,7 @@ function main() {
     addSolidGeometry(-2, 0, cubeGeometry, createColorMaterial(0x8844aa));
     addSolidGeometry(2, 0, cylinderGeometry, createColorMaterial(0xaa8844));
     addSolidGeometry(0, 2, coneGeometry, createTexturedMaterial(texture));
-    addSolidGeometry(0, 0, cubeGeometry, createTexturedMaterial(texture));
+    addSolidGeometry(0, -2, cubeGeometry, createTexturedMaterial(texture));
 
     // Animation
 	function render( time ) {
