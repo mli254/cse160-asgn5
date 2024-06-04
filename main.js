@@ -29,14 +29,88 @@ function main() {
     {
         const loader = new THREE.CubeTextureLoader();
         const texture = loader.load([
-            './images/quarry_cubemap_right.png',
-            './images/quarry_cubemap_left.png',
-            './images/quarry_cubemap_top.png',
-            './images/quarry_cubemap_bottom.png',
-            './images/quarry_cubemap_front.png',
-            './images/quarry_cubemap_back.png'
+            './images/night_right.png',
+            './images/night_left.png',
+            './images/night_top.png',
+            './images/night_bottom.png',
+            './images/night_front.png',
+            './images/night_back.png'
         ]);
         scene.background = texture;
+    }
+
+    // Setting up Snow Effect
+    // Following tutorial: https://www.youtube.com/watch?v=OXpl8durSjA
+    let particles; // snowflakes
+    let positions = []; // positions(x, y, z)
+    let velocities = []; // velocities(x, y, z)
+
+    const numSnowflakes = 15000 // number of snowflakes 
+
+    const maxRange = 1000, minRange = maxRange/2; // places snoeflakes on the x & z axes from -500 to 500
+    const minHeight = 150; // snowflakes placed from 150->500 on y axis
+
+    // BufferGeometry stores data as an array with individual attributes (position, color, size, faces, etc.)
+    const bufferGeometry = new THREE.BufferGeometry();
+    
+    const loader = new THREE.TextureLoader();
+
+    addSnowflakes();
+
+    function addSnowflakes() {
+        // 1) Create Snowflake Geometry
+        for (let i=0; i<numSnowflakes; i++) {
+            positions.push(
+                Math.floor(Math.random() * maxRange - minRange), // x -> -500 to 500
+                Math.floor(Math.random() * minRange - minHeight), // y -> 250 to 750
+                Math.floor(Math.random() * maxRange - minRange) // z -> -500 to 500
+            ); 
+
+            velocities.push(
+                Math.floor(Math.random() * 6 - 3) * 0.1, // x -0.3 to 0.3
+                Math.floor(Math.random() * 5 + 0.12) * 0.18, // y 0.02 to 0.92
+                Math.floor(Math.random() * 6 - 3) * 0.1 // z -0.3 to 0.3
+            );
+        }
+
+        // Each attribute has an array of values
+        bufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        bufferGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
+
+        // 2) Create Snowflake Material
+        const snowflakeMaterial = new THREE.PointsMaterial({
+            size: 4,
+            map: loader.load("./images/snowflake.png"),
+            blending: THREE.AdditiveBlending, // add RGB values when combining 2 colors, makes the snowflakes brighter
+            depthTest: false, // determines if one object is in front of another
+            transparent: true, // enable opacity changes to work
+            opacity: 0.7,
+        });
+
+        particles = new THREE.Points(bufferGeometry, snowflakeMaterial);
+        scene.add(particles);
+    }
+
+    function updateParticles() {
+        for (let i=0; i<numSnowflakes*3; i+=3) {
+            // Alter x, y, z position of each snowflake by its respective x, y, z velocity
+            // change x position by x velocity
+            particles.geometry.attributes.position.array[i] -= particles.geometry.attributes.velocity.array[i];
+            // change y position by x velocity
+            particles.geometry.attributes.position.array[i+1] -= particles.geometry.attributes.velocity.array[i+1];
+            // change z position by x velocity
+            particles.geometry.attributes.position.array[i+2] -= particles.geometry.attributes.velocity.array[i+2];
+    
+            // Pool the snowflakes by resetting their starting position when they hit the ground
+            if (particles.geometry.attributes.position.array[i+1] < -150) {
+                particles.geometry.attributes.position.array[i] = Math.floor(Math.random()*maxRange-minRange); // x
+                particles.geometry.attributes.position.array[i+1] = Math.floor(Math.random()*minRange-minHeight); // y
+                particles.geometry.attributes.position.array[i+2] = Math.floor(Math.random()*maxRange-minRange); // z
+            }
+        }
+    
+        // when attribute changed, needs to be resent to GPU to upsate position array of particles
+        particles.geometry.attributes.position.needsUpdate=true;
     }
 
     // Setting up Directional Lighting
@@ -102,6 +176,7 @@ function main() {
                 scene.add(root);
         });
     });
+
     // Cube Geometry Settings
 	const boxWidth = 1;
 	const boxHeight = 1;
@@ -133,12 +208,10 @@ function main() {
 
 
     // Textures Settings
-    const loader = new THREE.TextureLoader();
 	const mikuTexture = loader.load( './images/miku.png' );
 	mikuTexture.colorSpace = THREE.SRGBColorSpace;
 
     const objects = [];
-    const snowObjects = [];
 
     // Create Color Material
     function createColorMaterial(color) {
@@ -166,16 +239,6 @@ function main() {
 
     }
 
-    function addSnow(amount) {
-        for (let i = 0; i < amount; i++) {
-            const mesh = new THREE.Mesh(sphereGeometry, createColorMaterial(0xffffff));
-            mesh.position.x = (i - amount/2)*5;
-            mesh.position.y = (Math.random()*10);
-            scene.add(mesh);
-            snowObjects.push(mesh);
-        }
-    }
-
     // Abstracted method for creating geometries
     function addSolidGeometry( x, y, geometry, material ) {
 
@@ -199,12 +262,9 @@ function main() {
     sphereObj.position.y = -7;
     scene.add(sphereObj);
 
-    addSnow(20);
-
     // Animation
 	function render( time ) {
-
-		time *= 0.001; // convert time to seconds
+        time *= 0.001; // convert time to seconds
         let timePeriod = 5;
 
 		// objects.forEach( ( obj, ndx ) => {
@@ -216,23 +276,11 @@ function main() {
 
 		// } );
 
-        snowObjects.forEach( (obj, ndx)  => {
-            if (obj.position.y < -10) {
-                obj.position.y = 10;
-                timePeriod = time;
-            } else {
-                const speed = 1 + ndx * .001;
-                const delta = speed;
-                obj.position.y -= delta;
-            }
-        });
-
+        // controls.update();
+        updateParticles();
 		renderer.render( scene, camera );
-
 		requestAnimationFrame( render );
-
 	}
-
 	requestAnimationFrame( render );
 }
 
