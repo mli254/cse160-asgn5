@@ -20,7 +20,7 @@ function main() {
 	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
     renderer.outputEncoding = THREE.sRGBEncoding
     renderer.toneMapping = THREE.LinearToneMapping;
-    renderer.toneMappingExposure = 1.5;
+    renderer.toneMappingExposure = 1.2;
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(canvas.width, canvas.height);
 
@@ -30,7 +30,7 @@ function main() {
 	const near = 0.1;
 	const far = 100;
 	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	camera.position.set(0, -0.5, -5);
+	camera.position.set(0, 0.5, -5);
 
     const controls = new OrbitControls(camera, canvas);
     controls.target.set(0, 0, 0);
@@ -134,7 +134,46 @@ function main() {
     scene.add(star.object);
     scene.add(star.light);
     scene.add(star.light.target);
-    scene.add(star.helper);
+    // scene.add(star.helper);
+
+    let stars;
+    let starPositions = [];
+    
+    const numStars = 10000 // number of stars 
+    
+    const starMaxRange = 1000;
+    const starMinRange = starMaxRange/2;
+
+    // BufferGeometry stores data as an array with individual attributes (position, color, size, faces, etc.)
+    const starGeometry = new THREE.BufferGeometry();
+    addStars();
+
+    function addStars() {
+        // 1) Create Star Geometry
+        for (let i=0; i<numStars; i++) {
+            starPositions.push(
+                Math.floor(Math.random() * starMaxRange - starMinRange), 
+                Math.floor(Math.random() * starMinRange), 
+                Math.floor((Math.random() * starMaxRange - starMinRange)*-1)
+            ); 
+        }
+
+        // Each attribute has an array of values
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+
+        // 2) Create Material
+        const starMaterial = new THREE.PointsMaterial({
+            size: 4,
+            map: loader.load("./images/star.png"),
+            blending: THREE.AdditiveBlending, 
+            depthTest: false, 
+            transparent: true,
+            opacity: 0.25,
+        });
+
+        stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+    }
     // #endregion
 
     // #region Lighting
@@ -148,29 +187,29 @@ function main() {
 
     // Point Light
     {
-        const color = 0x00ffff;
+        const color = 0x6CC1CA;
         const intensity = 15;
         const light = new THREE.PointLight(color, intensity);
         light.position.set(0, 5, 0);
         scene.add(light);
 
         const helper = new THREE.PointLightHelper(light);
-        scene.add(helper);
+        // scene.add(helper);
     }
 
     // Spot Light
     {
-        // const color = 0xFFFFFF;
-        // const intensity = 250;
-        // const angle = THREE.MathUtils.radToDeg(30);
-        // const penumbra = 0.5;
-        // const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
-        // light.position.set(5, -4, 2);
-        // light.target.position.set(-5, 0, 0);
-        // scene.add(light);
-        // scene.add(light.target);
+        const color = 0xDADC91;
+        const intensity = 100;
+        const angle = THREE.MathUtils.radToDeg(30);
+        const penumbra = 0.5;
+        const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
+        light.position.set(-5, 8, 5);
+        light.target.position.set(0, 0, 0);
+        scene.add(light);
+        scene.add(light.target);
 
-        // const helper = new THREE.SpotLightHelper(light);
+        const helper = new THREE.SpotLightHelper(light);
         // scene.add(helper);
     }
     // #endregion
@@ -180,6 +219,18 @@ function main() {
     const mtlLoader = new MTLLoader();
     const objLoader = new OBJLoader();
     const gltfLoader = new GLTFLoader();
+
+    function randomPlacement(object, amount) {
+        let maxRange = 20;
+        let minRange = maxRange/2;
+        for (let i = 0; i < amount; i++) {
+            let clone = object.clone();
+            clone.position.x = Math.random() * maxRange - minRange;
+            clone.position.z = Math.random() * maxRange - minRange;
+            clone.rotation.y = Math.random();
+            scene.add(clone);
+        }
+    }
 
     gltfLoader.load( './models/ground.glb', function (gltf) {
         const groundModel = gltf.scene;
@@ -200,14 +251,40 @@ function main() {
         console.error( error );
     });
 
-    mtlLoader.load('./models/pond/PUSHILIN_pond.mtl', (mtl) => {
-        mtl.preload();
-        objLoader.setMaterials(mtl);
-        
-            objLoader.load('./models/pond/PUSHILIN_pond.obj', (pond) => {
-                pond.position.x = -3;
-                scene.add(pond);
-        });
+    gltfLoader.load('./models/log.glb', function (gltf) {
+        const logModel = gltf.scene;
+        logModel.position.x = -1.5;
+        logModel.position.y = -0.3;
+        logModel.position.z = -2;
+        scene.add( logModel );
+        randomPlacement(logModel, 4);
+
+    }, undefined, function (error) {
+        console.error( error );
+    });
+
+    gltfLoader.load('./models/bush.glb', function (gltf) {
+        const bushModel = gltf.scene;
+        bushModel.position.x = -1.5;
+        bushModel.position.y = -0.5;
+        bushModel.position.z = -5;
+        scene.add( bushModel );
+        randomPlacement(bushModel, 5);
+
+    }, undefined, function (error) {
+        console.error( error );
+    });
+
+    gltfLoader.load('./models/tree.glb', function (gltf) {
+        const treeModel = gltf.scene;
+        treeModel.position.x = 2;
+        treeModel.position.y = -0.5;
+        treeModel.position.z = -3; 
+        scene.add( treeModel );
+        randomPlacement(treeModel, 7);
+
+    }, undefined, function (error) {
+        console.error( error );
     });
 
     mtlLoader.load('./models/little_fox/materials.mtl', (mtl) => {
@@ -221,41 +298,13 @@ function main() {
     });
     // #endregion
 
-    // #region Geometry Settings
-    // Cube Geometry Settings
-	const boxWidth = 1;
-	const boxHeight = 1;
-	const boxDepth = 1;
-	const cubeGeometry = new THREE.BoxGeometry( boxWidth, boxHeight, boxDepth );
-
-    // Cylinder Geometry Settings
-    const radiusTop = 1;
-    const radiusBottom = 1;
-    const cylinderHeight = 1;
-    const radialSegments = 12;
-    const cylinderGeometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, cylinderHeight, radialSegments );
-
-    // Cone Geometry Settings
-    const coneRadius = 1;
-    const coneHeight = 1;
-    const coneSegments = 16;
-    const coneGeometry = new THREE.ConeGeometry( coneRadius, coneHeight, coneSegments);
-
-    // Plane Geometry Settings
-    const planeSize = 40;
-    const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
-
-    // Sphere Geometry Settings
-    const sphereRadius = 0.25;
-    const sphereWidthDivisions = 32;
-    const sphereHeightDivisions = 16;
-    const sphereGeometry = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
-    // #endregion
+    const planeWidth = 20
+    const planeGeometry = new THREE.PlaneGeometry( planeWidth, planeWidth );
 
     // #region Textures
     // Textures Settings
-	const mikuTexture = loader.load( './images/miku.png' );
-	mikuTexture.colorSpace = THREE.SRGBColorSpace;
+	const rockTexture = loader.load( './images/rock_texture.png' );
+	rockTexture.colorSpace = THREE.SRGBColorSpace;
 
     // #region Obj Helper Funcs
     // Create Color Material
@@ -267,15 +316,17 @@ function main() {
     // Create Texture Material
     function createTexturedMaterial(texture) {
         const material = new THREE.MeshPhongMaterial( {
-            map: texture
+            map: texture,
+            emissive: 0
         } );
         return material;
     }
 
-    function addObject( x, y, obj ) {
+    function addObject( x, y, z, obj ) {
 
 		obj.position.x = x;
 		obj.position.y = y;
+        obj.position.z = z;
 
 		scene.add( obj );
 		objects.push( obj );
@@ -283,30 +334,54 @@ function main() {
 
     }
 
-    // Abstracted method for creating geometries
-    function addSolidGeometry( x, y, geometry, material ) {
+    function createCubeGeometry(boxWidth, boxHeight, boxDepth) {
+        return new THREE.BoxGeometry( boxWidth, boxHeight, boxDepth );
+    }
 
+    function createCylinderGeometry(radiusTop, radiusBottom, cylinderHeight) {
+        let radialSegments = 12;
+        return new THREE.CylinderGeometry( radiusTop, radiusBottom, cylinderHeight, radialSegments );
+    }
+
+    function createSphereGeometry(sphereRadius) {
+        let sphereWidthDivisions = 32;
+        let sphereHeightDivisions = 16;
+        return new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+    }
+
+    // Abstracted method for creating geometries
+    function addSolidGeometry( x, y, z, geometry, material ) {
 		const mesh = new THREE.Mesh( geometry, material );
-		return addObject( x, y, mesh );
+		return addObject( x, y, z, mesh );
 
 	}
+
+    function addSnowPiles(amount) {
+        let color = createColorMaterial(0x84A2A5);
+        for (let i = 0; i< amount; i++) {
+            addSolidGeometry(Math.random() * 15 - 7.5, -1, Math.random() * 15 - 7.5, createSphereGeometry(Math.random()+0.5), color);
+        }
+    }
     // #endregion
 
     // #region Add Geometries
     const objects = [];
-
+    const rockMaterial = createTexturedMaterial(rockTexture);
     // Adding Geometries 
-    // addSolidGeometry(-2, 0, cubeGeometry, createColorMaterial(0x8844aa));
-    // addSolidGeometry(2, 0, cylinderGeometry, createColorMaterial(0xaa8844));
-    // addSolidGeometry(0, 2, coneGeometry, createTexturedMaterial(mikuTexture));
-    // addSolidGeometry(0, -2, cubeGeometry, createTexturedMaterial(mikuTexture));
+    addSolidGeometry(-2, 0, -1, createCubeGeometry(1, 1, 1), rockMaterial);
+    let obj = addSolidGeometry(-2, -0.5, 2, createCubeGeometry(1, 0.5, 0.5), rockMaterial);
+    obj.rotation.x = 1.571;
+    addSolidGeometry(2, 0, 2, createCylinderGeometry(1, 1, 1), rockMaterial);
+    addSolidGeometry(2, 1, 2, createCylinderGeometry(1, 1, 1), rockMaterial);
+    addSolidGeometry(1, -1, 1, createSphereGeometry(1.4), createColorMaterial(0x84A2A5));
+    addSolidGeometry(1, -0.75, -0.75, createSphereGeometry(0.5), createColorMaterial(0x84A2A5));
+    addSnowPiles(5);
 
-    const planeObj = new THREE.Mesh( planeGeometry, createColorMaterial(0x2F9982) );
-    planeObj.position.x = 0;
-    planeObj.position.y = -1;
-    planeObj.rotation.x = Math.PI * -.5;
-    // scene.add(planeObj)
-
+    const plane = new THREE.Mesh( planeGeometry, createColorMaterial(0x84A2A5) );
+    plane.rotation.x = -1.571;
+    plane.rotation.z = 1;
+    plane.position.y = -0.5
+    scene.add( plane );
     // #region Post-Processing
     // Followed Post-Processing Documentation from Three.js, used the following links to help debug some issues (blurriness):
         // https://www.youtube.com/watch?v=ZtK70Tb9uqg
@@ -316,7 +391,7 @@ function main() {
     const renderPass = new RenderPass( scene, camera );
     composer.addPass( renderPass );
 
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.05, 0.2);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.8, 0.5, 0.16);
     composer.addPass( bloomPass );
 
     const outputPass = new OutputPass();
