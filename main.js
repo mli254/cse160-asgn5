@@ -16,7 +16,7 @@ function main() {
 	const near = 0.1;
 	const far = 100;
 	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	camera.position.set(0, 0, 5);
+	camera.position.set(0, 0, -5);
 
     const controls = new OrbitControls(camera, canvas);
     controls.target.set(0, 0, 0);
@@ -29,12 +29,12 @@ function main() {
     {
         const loader = new THREE.CubeTextureLoader();
         const texture = loader.load([
-            './images/night_right.png',
-            './images/night_left.png',
-            './images/night_top.png',
-            './images/night_bottom.png',
-            './images/night_front.png',
-            './images/night_back.png'
+            './images/sky_right.png',
+            './images/sky_left.png',
+            './images/sky_top.png',
+            './images/sky_bottom.png',
+            './images/sky_front.png',
+            './images/sky_back.png'
         ]);
         scene.background = texture;
     }
@@ -84,7 +84,7 @@ function main() {
             blending: THREE.AdditiveBlending, // add RGB values when combining 2 colors, makes the snowflakes brighter
             depthTest: false, // determines if one object is in front of another
             transparent: true, // enable opacity changes to work
-            opacity: 0.7,
+            opacity: 0.9,
         });
 
         particles = new THREE.Points(bufferGeometry, snowflakeMaterial);
@@ -129,39 +129,39 @@ function main() {
 
     // Hemisphere Light
     {
-        const skyColor = 0xB1E1FF;  // light blue
-        const groundColor = 0xB97A20;  // brownish orange
-        const intensity = 1;
-        const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
-        scene.add(light);
+        // const skyColor = 0xB1E1FF;  // light blue
+        // const groundColor = 0xB97A20;  // brownish orange
+        // const intensity = 1;
+        // const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+        // scene.add(light);
     }
 
     // Point Light
     {
         const color = 0xedc0c1;
-        const intensity = 150;
-        const light = new THREE.PointLight(color, intensity);
-        light.position.set(0, 5, 0);
-        scene.add(light);
+        // const intensity = 150;
+        // const light = new THREE.PointLight(color, intensity);
+        // light.position.set(0, 5, 0);
+        // scene.add(light);
 
-        const helper = new THREE.PointLightHelper(light);
-        scene.add(helper);
+        // const helper = new THREE.PointLightHelper(light);
+        // scene.add(helper);
     }
 
     // Spot Light
     {
-        const color = 0xFFFFFF;
-        const intensity = 250;
-        const angle = THREE.MathUtils.radToDeg(30);
-        const penumbra = 0.5;
-        const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
-        light.position.set(5, -4, 2);
-        light.target.position.set(-5, 0, 0);
-        scene.add(light);
-        scene.add(light.target);
+    //     const color = 0xFFFFFF;
+    //     const intensity = 250;
+    //     const angle = THREE.MathUtils.radToDeg(30);
+    //     const penumbra = 0.5;
+    //     const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
+    //     light.position.set(5, -4, 2);
+    //     light.target.position.set(-5, 0, 0);
+    //     scene.add(light);
+    //     scene.add(light.target);
 
-        const helper = new THREE.SpotLightHelper(light);
-        scene.add(helper);
+    //     const helper = new THREE.SpotLightHelper(light);
+    //     scene.add(helper);
     }
 
     // Adding a model
