@@ -1,14 +1,28 @@
 import * as THREE from 'three';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {MTLLoader} from 'three/addons/loaders/MTLLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+import {Star} from './star.js';
 
 function main() {
 
+    // #region Setup
 	const canvas = document.querySelector( '#c' );
     canvas.width = 500;
     canvas.height = 500;
 	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
+    renderer.outputEncoding = THREE.sRGBEncoding
+    renderer.toneMapping = THREE.LinearToneMapping;
+    renderer.toneMappingExposure = 1.5;
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(canvas.width, canvas.height);
 
     // Setting up Camera
 	const fov = 75;
@@ -16,7 +30,7 @@ function main() {
 	const near = 0.1;
 	const far = 100;
 	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	camera.position.set(0, 0, -5);
+	camera.position.set(0, -0.5, -5);
 
     const controls = new OrbitControls(camera, canvas);
     controls.target.set(0, 0, 0);
@@ -38,21 +52,22 @@ function main() {
         ]);
         scene.background = texture;
     }
+    // #endregion
 
+    // #region Snow
     // Setting up Snow Effect
     // Following tutorial: https://www.youtube.com/watch?v=OXpl8durSjA
     let particles; // snowflakes
     let positions = []; // positions(x, y, z)
     let velocities = []; // velocities(x, y, z)
 
-    const numSnowflakes = 15000 // number of snowflakes 
+    const numSnowflakes = 10000 // number of snowflakes 
 
     const maxRange = 1000, minRange = maxRange/2; // places snoeflakes on the x & z axes from -500 to 500
     const minHeight = 150; // snowflakes placed from 150->500 on y axis
 
     // BufferGeometry stores data as an array with individual attributes (position, color, size, faces, etc.)
     const bufferGeometry = new THREE.BufferGeometry();
-    
     const loader = new THREE.TextureLoader();
 
     addSnowflakes();
@@ -84,7 +99,7 @@ function main() {
             blending: THREE.AdditiveBlending, // add RGB values when combining 2 colors, makes the snowflakes brighter
             depthTest: false, // determines if one object is in front of another
             transparent: true, // enable opacity changes to work
-            opacity: 0.9,
+            opacity: 0.3,
         });
 
         particles = new THREE.Points(bufferGeometry, snowflakeMaterial);
@@ -112,61 +127,89 @@ function main() {
         // when attribute changed, needs to be resent to GPU to upsate position array of particles
         particles.geometry.attributes.position.needsUpdate=true;
     }
+    // #endregion
 
-    // Setting up Directional Lighting
+    // #region Stars
+    const star = new Star();
+    scene.add(star.object);
+    scene.add(star.light);
+    scene.add(star.light.target);
+    scene.add(star.helper);
+    // #endregion
+
+    // #region Lighting
+    // Ambient Light
     {
-        const color = 0xc0d1ed;
-        const intensity = 5;
-        const light = new THREE.DirectionalLight( color, intensity );
-        light.position.set(-2, -4, 2);
-        light.target.position.set(5, 0, 0);
-        scene.add(light);
-        scene.add(light.target);
-
-        const helper = new THREE.DirectionalLightHelper(light);
-        scene.add(helper);
-    }
-
-    // Hemisphere Light
-    {
-        // const skyColor = 0xB1E1FF;  // light blue
-        // const groundColor = 0xB97A20;  // brownish orange
-        // const intensity = 1;
-        // const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
-        // scene.add(light);
+        const color = 0x163751;
+        const intensity = 10;
+        const light = new THREE.AmbientLight( color, intensity ); // soft white light
+        scene.add( light );
     }
 
     // Point Light
     {
-        const color = 0xedc0c1;
-        // const intensity = 150;
-        // const light = new THREE.PointLight(color, intensity);
-        // light.position.set(0, 5, 0);
-        // scene.add(light);
+        const color = 0x00ffff;
+        const intensity = 15;
+        const light = new THREE.PointLight(color, intensity);
+        light.position.set(0, 5, 0);
+        scene.add(light);
 
-        // const helper = new THREE.PointLightHelper(light);
-        // scene.add(helper);
+        const helper = new THREE.PointLightHelper(light);
+        scene.add(helper);
     }
 
     // Spot Light
     {
-    //     const color = 0xFFFFFF;
-    //     const intensity = 250;
-    //     const angle = THREE.MathUtils.radToDeg(30);
-    //     const penumbra = 0.5;
-    //     const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
-    //     light.position.set(5, -4, 2);
-    //     light.target.position.set(-5, 0, 0);
-    //     scene.add(light);
-    //     scene.add(light.target);
+        // const color = 0xFFFFFF;
+        // const intensity = 250;
+        // const angle = THREE.MathUtils.radToDeg(30);
+        // const penumbra = 0.5;
+        // const light = new THREE.SpotLight(color, intensity, 0, angle, penumbra);
+        // light.position.set(5, -4, 2);
+        // light.target.position.set(-5, 0, 0);
+        // scene.add(light);
+        // scene.add(light.target);
 
-    //     const helper = new THREE.SpotLightHelper(light);
-    //     scene.add(helper);
+        // const helper = new THREE.SpotLightHelper(light);
+        // scene.add(helper);
     }
+    // #endregion
 
-    // Adding a model
+    // #region Models
+    // Fox Model
     const mtlLoader = new MTLLoader();
     const objLoader = new OBJLoader();
+    const gltfLoader = new GLTFLoader();
+
+    gltfLoader.load( './models/ground.glb', function (gltf) {
+        const groundModel = gltf.scene;
+        groundModel.position.y = -1.7;
+        scene.add( groundModel );
+    }, undefined, function (error) {
+        console.error( error );
+    });
+
+    gltfLoader.load('./models/pond.glb', function (gltf) {
+        const pondModel = gltf.scene;
+        pondModel.position.x = 3;
+        pondModel.position.y = -0.5;
+        pondModel.position.z = -2;
+        scene.add( pondModel );
+
+    }, undefined, function (error) {
+        console.error( error );
+    });
+
+    mtlLoader.load('./models/pond/PUSHILIN_pond.mtl', (mtl) => {
+        mtl.preload();
+        objLoader.setMaterials(mtl);
+        
+            objLoader.load('./models/pond/PUSHILIN_pond.obj', (pond) => {
+                pond.position.x = -3;
+                scene.add(pond);
+        });
+    });
+
     mtlLoader.load('./models/little_fox/materials.mtl', (mtl) => {
         mtl.preload();
         objLoader.setMaterials(mtl);
@@ -176,7 +219,9 @@ function main() {
                 scene.add(root);
         });
     });
+    // #endregion
 
+    // #region Geometry Settings
     // Cube Geometry Settings
 	const boxWidth = 1;
 	const boxHeight = 1;
@@ -205,14 +250,14 @@ function main() {
     const sphereWidthDivisions = 32;
     const sphereHeightDivisions = 16;
     const sphereGeometry = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+    // #endregion
 
-
+    // #region Textures
     // Textures Settings
 	const mikuTexture = loader.load( './images/miku.png' );
 	mikuTexture.colorSpace = THREE.SRGBColorSpace;
 
-    const objects = [];
-
+    // #region Obj Helper Funcs
     // Create Color Material
     function createColorMaterial(color) {
         const material = new THREE.MeshPhongMaterial( { color } );
@@ -227,7 +272,6 @@ function main() {
         return material;
     }
 
-    // Draw Objects
     function addObject( x, y, obj ) {
 
 		obj.position.x = x;
@@ -246,39 +290,44 @@ function main() {
 		return addObject( x, y, mesh );
 
 	}
+    // #endregion
 
-    addSolidGeometry(-2, 0, cubeGeometry, createColorMaterial(0x8844aa));
-    addSolidGeometry(2, 0, cylinderGeometry, createColorMaterial(0xaa8844));
-    addSolidGeometry(0, 2, coneGeometry, createTexturedMaterial(mikuTexture));
-    addSolidGeometry(0, -2, cubeGeometry, createTexturedMaterial(mikuTexture));
-    const planeObj = new THREE.Mesh( planeGeometry, createTexturedMaterial(mikuTexture) );
+    // #region Add Geometries
+    const objects = [];
+
+    // Adding Geometries 
+    // addSolidGeometry(-2, 0, cubeGeometry, createColorMaterial(0x8844aa));
+    // addSolidGeometry(2, 0, cylinderGeometry, createColorMaterial(0xaa8844));
+    // addSolidGeometry(0, 2, coneGeometry, createTexturedMaterial(mikuTexture));
+    // addSolidGeometry(0, -2, cubeGeometry, createTexturedMaterial(mikuTexture));
+
+    const planeObj = new THREE.Mesh( planeGeometry, createColorMaterial(0x2F9982) );
     planeObj.position.x = 0;
-    planeObj.position.y = -10;
+    planeObj.position.y = -1;
     planeObj.rotation.x = Math.PI * -.5;
-    scene.add(planeObj)
+    // scene.add(planeObj)
 
-    const sphereObj = new THREE.Mesh(sphereGeometry, createColorMaterial(0xffffff));
-    sphereObj.position.x = 0;
-    sphereObj.position.y = -7;
-    scene.add(sphereObj);
+    // #region Post-Processing
+    // Followed Post-Processing Documentation from Three.js, used the following links to help debug some issues (blurriness):
+        // https://www.youtube.com/watch?v=ZtK70Tb9uqg
+    // Post Processing
+    const composer = new EffectComposer( renderer );
 
-    // Animation
+    const renderPass = new RenderPass( scene, camera );
+    composer.addPass( renderPass );
+
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.05, 0.2);
+    composer.addPass( bloomPass );
+
+    const outputPass = new OutputPass();
+    composer.addPass( outputPass );
+
+    // #region Animation
 	function render( time ) {
         time *= 0.001; // convert time to seconds
-        let timePeriod = 5;
 
-		// objects.forEach( ( obj, ndx ) => {
-
-		// 	const speed = 1 + ndx * .1;
-		// 	const rot = time * speed;
-		// 	obj.rotation.x = rot;
-		// 	obj.rotation.y = rot;
-
-		// } );
-
-        // controls.update();
         updateParticles();
-		renderer.render( scene, camera );
+		composer.render();
 		requestAnimationFrame( render );
 	}
 	requestAnimationFrame( render );
